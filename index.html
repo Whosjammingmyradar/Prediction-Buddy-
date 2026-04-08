@@ -630,7 +630,7 @@
   <div class="panel" id="panel-livecams">
 
     <div class="api-note" style="margin-bottom:16px">
-      <strong>Live Feeds:</strong> News channels (Al Jazeera, France 24, DW, TRT World, WION, Euronews) are verified 24/7 embeddable streams. Government feeds (C-SPAN, UN, NATO, EU Parliament) stream when events are live — tiles will show a placeholder between sessions. EarthCam city feeds are always-on. Click any tile to load. Use the custom slot below to add your own embed URL.
+      <strong>Live Feeds:</strong> All streams are direct embeds from broadcaster and camera websites — no YouTube. News channels run 24/7. Government feeds (C-SPAN, UN, NATO) stream during live events only. EarthCam and MarineTraffic feeds are always-on. Click any tile to load. Use the custom slot below to add any embeddable URL.
     </div>
 
     <!-- Category filter -->
@@ -2031,195 +2031,217 @@ console.log('%cPrediction Buddy loaded.', 'color: #c8a84b; font-family: monospac
 <script>
 // LIVE CAMS DATA
 const BUILT_IN_CAMS = [
-  // NEWS CHANNELS — verified 24/7 embeddable streams
+  // NEWS — direct broadcaster embeds (no YouTube)
   {
     id: 'aljaz',
     name: 'Al Jazeera English',
-    source: 'Al Jazeera',
+    source: 'aljazeera.net',
     cat: 'news',
-    embedUrl: 'https://www.youtube.com/embed/F5uTQbMUjHY',
-    desc: 'Live global news — strong Middle East / conflict coverage'
+    embedUrl: 'https://www.aljazeera.com/live/',
+    embedType: 'iframe',
+    desc: 'Live global news — Middle East / conflict focus'
   },
   {
     id: 'france24en',
     name: 'France 24 English',
-    source: 'France 24',
+    source: 'france24.com',
     cat: 'news',
-    embedUrl: 'https://www.youtube.com/embed/h3MuIUNCCLI',
-    desc: 'International news in English'
+    embedUrl: 'https://player.france24.com/en/live',
+    embedType: 'iframe',
+    desc: 'International news in English — direct France 24 player'
   },
   {
     id: 'france24fr',
     name: 'France 24 Francais',
-    source: 'France 24',
+    source: 'france24.com',
     cat: 'news',
-    embedUrl: 'https://www.youtube.com/embed/ikMmTzu7gMc',
+    embedUrl: 'https://player.france24.com/fr/live',
+    embedType: 'iframe',
     desc: 'French-language international news'
   },
   {
+    id: 'france24ar',
+    name: 'France 24 Arabic',
+    source: 'france24.com',
+    cat: 'news',
+    embedUrl: 'https://player.france24.com/ar/live',
+    embedType: 'iframe',
+    desc: 'Arabic-language international news'
+  },
+  {
     id: 'dw',
-    name: 'DW News Live',
-    source: 'Deutsche Welle',
+    name: 'DW News English',
+    source: 'dw.com',
     cat: 'news',
-    embedUrl: 'https://www.youtube.com/embed/rSMEbJMx9-I',
-    desc: 'German international broadcaster — EU / Eastern Europe focus'
-  },
-  {
-    id: 'trtworld',
-    name: 'TRT World Live',
-    source: 'TRT World',
-    cat: 'news',
-    embedUrl: 'https://www.youtube.com/embed/suLT7DG4UGM',
-    desc: 'Turkish international broadcaster — Middle East / Central Asia'
-  },
-  {
-    id: 'wion',
-    name: 'WION Live',
-    source: 'WION',
-    cat: 'news',
-    embedUrl: 'https://www.youtube.com/embed/Dv8ZNLMzaVY',
-    desc: 'India-based global news — Asia / South Asia coverage'
+    embedUrl: 'https://www.dw.com/en/live-tv/s-100825',
+    embedType: 'iframe',
+    desc: 'Deutsche Welle — EU / Eastern Europe focus'
   },
   {
     id: 'euronews',
     name: 'Euronews English',
-    source: 'Euronews',
+    source: 'euronews.com',
     cat: 'news',
-    embedUrl: 'https://www.youtube.com/embed/zfFn--bMHAo',
-    desc: 'Pan-European news channel in English'
+    embedUrl: 'https://player.euronews.com/live',
+    embedType: 'iframe',
+    desc: 'Pan-European live news in English'
   },
   {
-    id: 'afptv',
-    name: 'AFP News Agency',
-    source: 'Agence France-Presse',
+    id: 'trtworld',
+    name: 'TRT World',
+    source: 'trtworld.com',
     cat: 'news',
-    embedUrl: 'https://www.youtube.com/embed/live_stream?channel=UCettgh8eKJBBqBIBqVmHF-A',
-    desc: 'AFP wire service live video feed'
+    embedUrl: 'https://www.trtworld.com/live',
+    embedType: 'iframe',
+    desc: 'Turkish international broadcaster — Middle East / Central Asia'
   },
   {
-    id: 'newsmax',
-    name: 'Newsmax Live',
-    source: 'Newsmax',
+    id: 'cnn',
+    name: 'CNN Live',
+    source: 'cnn.com',
     cat: 'news',
-    embedUrl: 'https://www.youtube.com/embed/lWqSUieCNNU',
-    desc: 'US conservative news network'
+    embedUrl: 'https://fave.api.cnn.io/v1/fav/?video=cvplive/cvpstream1&format=preview&platform=desktop&rec=false&restraintSize=false',
+    embedType: 'iframe',
+    desc: 'CNN live stream'
   },
   {
-    id: 'ntd',
-    name: 'NTD News Live',
-    source: 'NTD',
+    id: 'cbsnews',
+    name: 'CBS News 24/7',
+    source: 'cbsnews.com',
     cat: 'news',
-    embedUrl: 'https://www.youtube.com/embed/live_stream?channel=UC-4gBDf8FYjFQGKcQHBAPLQ',
-    desc: 'Independent news — strong China / Asia coverage'
+    embedUrl: 'https://www.cbsnews.com/embed/live/',
+    embedType: 'iframe',
+    desc: 'CBS News live 24/7 stream'
+  },
+  {
+    id: 'abcnews',
+    name: 'ABC News Live',
+    source: 'abcnews.go.com',
+    cat: 'news',
+    embedUrl: 'https://abcnews.go.com/Live',
+    embedType: 'iframe',
+    desc: 'ABC News live stream'
   },
 
-  // GOVERNMENT / OFFICIAL — use YouTube watch links converted to embed
-  // These only stream when an event is live; otherwise show channel placeholder
+  // GOVERNMENT / OFFICIAL — direct embeds
   {
     id: 'cspan1',
     name: 'C-SPAN Live',
-    source: 'C-SPAN',
+    source: 'c-span.org',
     cat: 'gov',
-    embedUrl: 'https://www.youtube.com/embed/live_stream?channel=UC4AnkhO3HFEEchq-trW0uKA',
-    desc: 'US congressional and government proceedings — 24/7'
+    embedUrl: 'https://www.c-span.org/live/',
+    embedType: 'iframe',
+    desc: 'US congressional proceedings — 24/7 direct from C-SPAN'
   },
   {
     id: 'cspan2',
     name: 'C-SPAN 2 Live',
-    source: 'C-SPAN',
+    source: 'c-span.org',
     cat: 'gov',
-    embedUrl: 'https://www.youtube.com/embed/live_stream?channel=UCOmovKBSBUxCe6PNQcQShbw',
-    desc: 'US Senate proceedings and BookTV'
+    embedUrl: 'https://www.c-span.org/live/cspan2/',
+    embedType: 'iframe',
+    desc: 'Senate proceedings and BookTV'
   },
   {
     id: 'cspan3',
     name: 'C-SPAN 3 Live',
-    source: 'C-SPAN',
+    source: 'c-span.org',
     cat: 'gov',
-    embedUrl: 'https://www.youtube.com/embed/live_stream?channel=UCYikzLHbMsdqYKfbTjHFpTg',
-    desc: 'Congressional hearings and historical programming'
+    embedUrl: 'https://www.c-span.org/live/cspan3/',
+    embedType: 'iframe',
+    desc: 'Congressional hearings and history'
   },
   {
     id: 'un',
-    name: 'United Nations TV',
-    source: 'UN Web TV',
+    name: 'UN Web TV',
+    source: 'webtv.un.org',
     cat: 'gov',
-    embedUrl: 'https://www.youtube.com/embed/live_stream?channel=UC5m4P2J_OHJ9LFIYrHsqAnw',
-    desc: 'UN Security Council, General Assembly, press briefings'
+    embedUrl: 'https://webtv.un.org/en/live',
+    embedType: 'iframe',
+    desc: 'UN Security Council, General Assembly, press conferences'
   },
   {
     id: 'nato',
-    name: 'NATO Channel',
-    source: 'NATO',
+    name: 'NATO Live',
+    source: 'nato.int',
     cat: 'gov',
-    embedUrl: 'https://www.youtube.com/embed/live_stream?channel=UCb5V4RI3Pce5sNKQGJdahQA',
+    embedUrl: 'https://www.nato.int/cps/en/natohq/news.htm',
+    embedType: 'iframe',
     desc: 'NATO press conferences and official events'
   },
   {
     id: 'euparl',
-    name: 'European Parliament Live',
-    source: 'EU Parliament',
+    name: 'EU Parliament TV',
+    source: 'europarl.europa.eu',
     cat: 'gov',
-    embedUrl: 'https://www.youtube.com/embed/live_stream?channel=UCmnwTHBKkCcHNqhZzHMtFmg',
-    desc: 'European Parliament plenary sessions and debates'
+    embedUrl: 'https://multimedia.europarl.europa.eu/en/webstreaming',
+    embedType: 'iframe',
+    desc: 'European Parliament live plenary sessions'
   },
 
-  // GEOPOLITICAL / SITUATIONAL CAMS
+  // GEOPOLITICAL / SITUATIONAL — direct cam embeds
   {
     id: 'earthcam-times',
     name: 'Times Square NYC',
-    source: 'EarthCam',
+    source: 'earthcam.com',
     cat: 'geo',
-    embedUrl: 'https://www.youtube.com/embed/1-iZpHGYbxo',
-    desc: 'Live Times Square camera — situational awareness'
+    embedUrl: 'https://www.earthcam.com/usa/newyork/timessquare/?cam=tsrobo1',
+    embedType: 'iframe',
+    desc: 'Live Times Square — situational awareness'
   },
   {
     id: 'earthcam-dc',
-    name: 'Washington DC Mall',
-    source: 'EarthCam',
+    name: 'Washington DC',
+    source: 'earthcam.com',
     cat: 'geo',
-    embedUrl: 'https://www.youtube.com/embed/bVeEBjFQJOE',
-    desc: 'National Mall / Capitol area live cam'
+    embedUrl: 'https://www.earthcam.com/usa/dc/whitehouse/',
+    embedType: 'iframe',
+    desc: 'White House / DC live cam'
   },
   {
     id: 'earthcam-chicago',
-    name: 'Chicago Riverwalk',
-    source: 'EarthCam',
+    name: 'Chicago Millennium Park',
+    source: 'earthcam.com',
     cat: 'geo',
-    embedUrl: 'https://www.youtube.com/embed/JiCFrBJJANk',
+    embedUrl: 'https://www.earthcam.com/usa/illinois/chicago/?cam=chicago_millenniumpark',
+    embedType: 'iframe',
     desc: 'Chicago downtown live cam'
   },
   {
-    id: 'earthcam-lasvegas',
-    name: 'Las Vegas Strip',
-    source: 'EarthCam',
+    id: 'earthcam-london',
+    name: 'London Piccadilly',
+    source: 'earthcam.com',
     cat: 'geo',
-    embedUrl: 'https://www.youtube.com/embed/NuSuItFReWY',
-    desc: 'Las Vegas Strip live — crowd density indicator'
+    embedUrl: 'https://www.earthcam.com/world/england/london/?cam=piccadilly',
+    embedType: 'iframe',
+    desc: 'London Piccadilly Circus live cam'
   },
   {
-    id: 'tokyo',
-    name: 'Tokyo Shibuya Crossing',
-    source: 'YouTube Live',
+    id: 'webcam-kyiv',
+    name: 'Kyiv City Centre',
+    source: 'webcam.ua',
     cat: 'geo',
-    embedUrl: 'https://www.youtube.com/embed/o3NMaC8aCbk',
-    desc: 'Live Shibuya crossing — Tokyo situational reference'
+    embedUrl: 'https://webcam.ua/ua/online/kyiv-maidan/',
+    embedType: 'iframe',
+    desc: 'Kyiv Maidan live — Ukraine situational reference'
   },
   {
-    id: 'london',
-    name: 'London Oxford Street',
-    source: 'YouTube Live',
+    id: 'flightradar',
+    name: 'Flightradar24 Live',
+    source: 'flightradar24.com',
     cat: 'geo',
-    embedUrl: 'https://www.youtube.com/embed/5O_SJWGh1aE',
-    desc: 'London live street cam'
+    embedUrl: 'https://www.flightradar24.com/',
+    embedType: 'iframe',
+    desc: 'Global live flight tracking — aviation situational awareness'
   },
   {
-    id: 'flightaware',
-    name: 'FlightAware / ADS-B Exchange',
-    source: 'YouTube Live',
+    id: 'marinetraffic',
+    name: 'MarineTraffic Live',
+    source: 'marinetraffic.com',
     cat: 'geo',
-    embedUrl: 'https://www.youtube.com/embed/live_stream?channel=UCIAtFKEJ-oWa7HsNjGYZ_vA',
-    desc: 'Aviation tracking and air traffic discussion'
+    embedUrl: 'https://www.marinetraffic.com/en/ais/home/centerx:55/centery:25/zoom:6',
+    embedType: 'iframe',
+    desc: 'Live vessel tracking — Strait of Hormuz / Persian Gulf default view'
   },
 ];
 
