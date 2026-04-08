@@ -630,37 +630,58 @@
   <div class="panel" id="panel-livecams">
 
     <div class="api-note" style="margin-bottom:16px">
-      <strong>Live Feeds:</strong> All streams are direct embeds from broadcaster and camera websites — no YouTube. News channels run 24/7. Government feeds (C-SPAN, UN, NATO) stream during live events only. EarthCam and MarineTraffic feeds are always-on. Click any tile to load. Use the custom slot below to add any embeddable URL.
+      <strong>Note:</strong> Browser security (X-Frame-Options) prevents live video from being embedded from most news sites. The map and tracking tools below embed directly. All news/government streams open in a new tab — use them alongside this dashboard.
     </div>
 
-    <!-- Category filter -->
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px" id="cam-filters">
-      <button class="cam-filter-btn active" data-cat="all" onclick="filterCams('all')">All</button>
-      <button class="cam-filter-btn" data-cat="gov" onclick="filterCams('gov')">Government / Official</button>
-      <button class="cam-filter-btn" data-cat="news" onclick="filterCams('news')">News Channels</button>
-      <button class="cam-filter-btn" data-cat="geo" onclick="filterCams('geo')">Geopolitical / Intel</button>
-      <button class="cam-filter-btn" data-cat="custom" onclick="filterCams('custom')">My Custom Feeds</button>
+    <!-- LIVE MAP TOOLS — these actually embed -->
+    <div class="section-title">Live Situational Maps</div>
+    <div class="grid-3" style="margin-bottom:20px">
+
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="card-header" style="padding:10px 14px;border-radius:0">MarineTraffic — Strait of Hormuz</div>
+        <iframe src="https://www.marinetraffic.com/en/ais/embed/zoom:7/centery:26/centerx:56/maptype:0/shownames:false/mmsi:0/shipid:0/fleet:/fleet_id:/vtypes:/showmenu:/remember:false"
+          style="width:100%;height:320px;border:none;display:block" loading="lazy"></iframe>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="card-header" style="padding:10px 14px;border-radius:0">Flightradar24 — Middle East</div>
+        <iframe src="https://www.flightradar24.com/simple_index.php?lat=28&lon=50&z=5"
+          style="width:100%;height:320px;border:none;display:block" loading="lazy"></iframe>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="card-header" style="padding:10px 14px;border-radius:0">Windy — Wind / Weather</div>
+        <iframe src="https://embed.windy.com/embed2.html?lat=28&lon=50&zoom=5&level=surface&overlay=wind&menu=&message=&marker=&calendar=&pressure=&type=map&location=coordinates&detail=&metricWind=kt&metricTemp=%C2%B0C&radarRange=-1"
+          style="width:100%;height:320px;border:none;display:block" loading="lazy"></iframe>
+      </div>
+
     </div>
 
-    <div id="cam-grid" class="cam-grid"></div>
+    <!-- STREAM LAUNCHERS -->
+    <div class="section-title">News Streams — Click to Open</div>
+
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="cam-filter-btn active" data-lcat="all" onclick="filterLinks('all')">All</button>
+      <button class="cam-filter-btn" data-lcat="news" onclick="filterLinks('news')">News</button>
+      <button class="cam-filter-btn" data-lcat="gov" onclick="filterLinks('gov')">Government</button>
+      <button class="cam-filter-btn" data-lcat="geo" onclick="filterLinks('geo')">Geo / Intel</button>
+    </div>
+
+    <div id="stream-link-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:20px"></div>
 
     <!-- Custom feed slot -->
-    <div class="section-title">Add Custom Feed</div>
+    <div class="section-title">Add Custom Link</div>
     <div class="card">
-      <div class="card-header">Custom Embeddable Stream</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-        <input type="text" id="custom-cam-url" placeholder="YouTube embed URL — e.g. https://www.youtube.com/embed/VIDEOID" style="flex:2;min-width:220px">
-        <input type="text" id="custom-cam-label" placeholder="Label — e.g. Pentagon Briefing" style="flex:1;min-width:160px">
-        <select id="custom-cam-cat" style="width:150px">
-          <option value="custom">Custom</option>
-          <option value="gov">Government</option>
+      <div class="card-header">Custom Stream Link</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <input type="text" id="custom-cam-url" placeholder="https://..." style="flex:2;min-width:200px">
+        <input type="text" id="custom-cam-label" placeholder="Label" style="flex:1;min-width:140px">
+        <select id="custom-cam-cat" style="width:130px">
           <option value="news">News</option>
+          <option value="gov">Government</option>
           <option value="geo">Geo / Intel</option>
         </select>
-        <button class="btn btn-primary" onclick="addCustomCam()">Add Feed</button>
-      </div>
-      <div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--text-dim)">
-        To get a YouTube embed URL: open the video/stream on YouTube, click Share, then Embed, and copy the src URL from the iframe code (starts with https://www.youtube.com/embed/...).
+        <button class="btn btn-primary" onclick="addCustomCam()">Add</button>
       </div>
     </div>
 
@@ -2029,292 +2050,77 @@ console.log('%cPrediction Buddy loaded.', 'color: #c8a84b; font-family: monospac
 
 
 <script>
-// LIVE CAMS DATA
-const BUILT_IN_CAMS = [
-  // NEWS — direct broadcaster embeds (no YouTube)
-  {
-    id: 'aljaz',
-    name: 'Al Jazeera English',
-    source: 'aljazeera.net',
-    cat: 'news',
-    embedUrl: 'https://www.aljazeera.com/live/',
-    embedType: 'iframe',
-    desc: 'Live global news — Middle East / conflict focus'
-  },
-  {
-    id: 'france24en',
-    name: 'France 24 English',
-    source: 'france24.com',
-    cat: 'news',
-    embedUrl: 'https://player.france24.com/en/live',
-    embedType: 'iframe',
-    desc: 'International news in English — direct France 24 player'
-  },
-  {
-    id: 'france24fr',
-    name: 'France 24 Francais',
-    source: 'france24.com',
-    cat: 'news',
-    embedUrl: 'https://player.france24.com/fr/live',
-    embedType: 'iframe',
-    desc: 'French-language international news'
-  },
-  {
-    id: 'france24ar',
-    name: 'France 24 Arabic',
-    source: 'france24.com',
-    cat: 'news',
-    embedUrl: 'https://player.france24.com/ar/live',
-    embedType: 'iframe',
-    desc: 'Arabic-language international news'
-  },
-  {
-    id: 'dw',
-    name: 'DW News English',
-    source: 'dw.com',
-    cat: 'news',
-    embedUrl: 'https://www.dw.com/en/live-tv/s-100825',
-    embedType: 'iframe',
-    desc: 'Deutsche Welle — EU / Eastern Europe focus'
-  },
-  {
-    id: 'euronews',
-    name: 'Euronews English',
-    source: 'euronews.com',
-    cat: 'news',
-    embedUrl: 'https://player.euronews.com/live',
-    embedType: 'iframe',
-    desc: 'Pan-European live news in English'
-  },
-  {
-    id: 'trtworld',
-    name: 'TRT World',
-    source: 'trtworld.com',
-    cat: 'news',
-    embedUrl: 'https://www.trtworld.com/live',
-    embedType: 'iframe',
-    desc: 'Turkish international broadcaster — Middle East / Central Asia'
-  },
-  {
-    id: 'cnn',
-    name: 'CNN Live',
-    source: 'cnn.com',
-    cat: 'news',
-    embedUrl: 'https://fave.api.cnn.io/v1/fav/?video=cvplive/cvpstream1&format=preview&platform=desktop&rec=false&restraintSize=false',
-    embedType: 'iframe',
-    desc: 'CNN live stream'
-  },
-  {
-    id: 'cbsnews',
-    name: 'CBS News 24/7',
-    source: 'cbsnews.com',
-    cat: 'news',
-    embedUrl: 'https://www.cbsnews.com/embed/live/',
-    embedType: 'iframe',
-    desc: 'CBS News live 24/7 stream'
-  },
-  {
-    id: 'abcnews',
-    name: 'ABC News Live',
-    source: 'abcnews.go.com',
-    cat: 'news',
-    embedUrl: 'https://abcnews.go.com/Live',
-    embedType: 'iframe',
-    desc: 'ABC News live stream'
-  },
-
-  // GOVERNMENT / OFFICIAL — direct embeds
-  {
-    id: 'cspan1',
-    name: 'C-SPAN Live',
-    source: 'c-span.org',
-    cat: 'gov',
-    embedUrl: 'https://www.c-span.org/live/',
-    embedType: 'iframe',
-    desc: 'US congressional proceedings — 24/7 direct from C-SPAN'
-  },
-  {
-    id: 'cspan2',
-    name: 'C-SPAN 2 Live',
-    source: 'c-span.org',
-    cat: 'gov',
-    embedUrl: 'https://www.c-span.org/live/cspan2/',
-    embedType: 'iframe',
-    desc: 'Senate proceedings and BookTV'
-  },
-  {
-    id: 'cspan3',
-    name: 'C-SPAN 3 Live',
-    source: 'c-span.org',
-    cat: 'gov',
-    embedUrl: 'https://www.c-span.org/live/cspan3/',
-    embedType: 'iframe',
-    desc: 'Congressional hearings and history'
-  },
-  {
-    id: 'un',
-    name: 'UN Web TV',
-    source: 'webtv.un.org',
-    cat: 'gov',
-    embedUrl: 'https://webtv.un.org/en/live',
-    embedType: 'iframe',
-    desc: 'UN Security Council, General Assembly, press conferences'
-  },
-  {
-    id: 'nato',
-    name: 'NATO Live',
-    source: 'nato.int',
-    cat: 'gov',
-    embedUrl: 'https://www.nato.int/cps/en/natohq/news.htm',
-    embedType: 'iframe',
-    desc: 'NATO press conferences and official events'
-  },
-  {
-    id: 'euparl',
-    name: 'EU Parliament TV',
-    source: 'europarl.europa.eu',
-    cat: 'gov',
-    embedUrl: 'https://multimedia.europarl.europa.eu/en/webstreaming',
-    embedType: 'iframe',
-    desc: 'European Parliament live plenary sessions'
-  },
-
-  // GEOPOLITICAL / SITUATIONAL — direct cam embeds
-  {
-    id: 'earthcam-times',
-    name: 'Times Square NYC',
-    source: 'earthcam.com',
-    cat: 'geo',
-    embedUrl: 'https://www.earthcam.com/usa/newyork/timessquare/?cam=tsrobo1',
-    embedType: 'iframe',
-    desc: 'Live Times Square — situational awareness'
-  },
-  {
-    id: 'earthcam-dc',
-    name: 'Washington DC',
-    source: 'earthcam.com',
-    cat: 'geo',
-    embedUrl: 'https://www.earthcam.com/usa/dc/whitehouse/',
-    embedType: 'iframe',
-    desc: 'White House / DC live cam'
-  },
-  {
-    id: 'earthcam-chicago',
-    name: 'Chicago Millennium Park',
-    source: 'earthcam.com',
-    cat: 'geo',
-    embedUrl: 'https://www.earthcam.com/usa/illinois/chicago/?cam=chicago_millenniumpark',
-    embedType: 'iframe',
-    desc: 'Chicago downtown live cam'
-  },
-  {
-    id: 'earthcam-london',
-    name: 'London Piccadilly',
-    source: 'earthcam.com',
-    cat: 'geo',
-    embedUrl: 'https://www.earthcam.com/world/england/london/?cam=piccadilly',
-    embedType: 'iframe',
-    desc: 'London Piccadilly Circus live cam'
-  },
-  {
-    id: 'webcam-kyiv',
-    name: 'Kyiv City Centre',
-    source: 'webcam.ua',
-    cat: 'geo',
-    embedUrl: 'https://webcam.ua/ua/online/kyiv-maidan/',
-    embedType: 'iframe',
-    desc: 'Kyiv Maidan live — Ukraine situational reference'
-  },
-  {
-    id: 'flightradar',
-    name: 'Flightradar24 Live',
-    source: 'flightradar24.com',
-    cat: 'geo',
-    embedUrl: 'https://www.flightradar24.com/',
-    embedType: 'iframe',
-    desc: 'Global live flight tracking — aviation situational awareness'
-  },
-  {
-    id: 'marinetraffic',
-    name: 'MarineTraffic Live',
-    source: 'marinetraffic.com',
-    cat: 'geo',
-    embedUrl: 'https://www.marinetraffic.com/en/ais/home/centerx:55/centery:25/zoom:6',
-    embedType: 'iframe',
-    desc: 'Live vessel tracking — Strait of Hormuz / Persian Gulf default view'
-  },
+// LIVE STREAMS — link launcher data
+const STREAM_LINKS = [
+  // NEWS
+  { id:'aljaz',    name:'Al Jazeera English',  url:'https://www.aljazeera.com/live/',         cat:'news', desc:'Middle East / conflict focus' },
+  { id:'france24', name:'France 24 English',   url:'https://www.france24.com/en/live-news/',  cat:'news', desc:'International — Paris-based' },
+  { id:'dw',       name:'DW News Live',        url:'https://www.dw.com/en/live-tv/s-100825',  cat:'news', desc:'EU / Eastern Europe focus' },
+  { id:'euronews', name:'Euronews English',    url:'https://www.euronews.com/live',            cat:'news', desc:'Pan-European broadcaster' },
+  { id:'trt',      name:'TRT World',           url:'https://www.trtworld.com/live',            cat:'news', desc:'Turkey — Middle East / Central Asia' },
+  { id:'wion',     name:'WION Live',           url:'https://www.wionews.com/live-tv',          cat:'news', desc:'India-based — Asia focus' },
+  { id:'cnn',      name:'CNN Live',            url:'https://www.cnn.com/live-tv',              cat:'news', desc:'US news network' },
+  { id:'fox',      name:'Fox News Live',       url:'https://www.foxnews.com/live',             cat:'news', desc:'US conservative news' },
+  { id:'newsmax',  name:'Newsmax Live',        url:'https://www.newsmax.com/live/',            cat:'news', desc:'US news / politics' },
+  { id:'cbs',      name:'CBS News 24/7',       url:'https://www.cbsnews.com/live/',            cat:'news', desc:'US network news' },
+  { id:'abc',      name:'ABC News Live',       url:'https://abcnews.go.com/live/',             cat:'news', desc:'US network news' },
+  { id:'nbc',      name:'NBC News Now',        url:'https://www.nbcnews.com/now',              cat:'news', desc:'US network news' },
+  { id:'ntd',      name:'NTD News',            url:'https://www.ntd.com/live',                 cat:'news', desc:'Independent — China focus' },
+  { id:'cgtn',     name:'CGTN English',        url:'https://www.cgtn.com/live',                cat:'news', desc:'China state international broadcaster' },
+  { id:'rt',       name:'RT International',   url:'https://www.rt.com/on-air/',               cat:'news', desc:'Russia — use critically' },
+  // GOVERNMENT
+  { id:'cspan1',   name:'C-SPAN Live',         url:'https://www.c-span.org/live/',             cat:'gov',  desc:'Congressional proceedings' },
+  { id:'cspan2',   name:'C-SPAN 2',            url:'https://www.c-span.org/live/cspan2/',      cat:'gov',  desc:'Senate / BookTV' },
+  { id:'cspan3',   name:'C-SPAN 3',            url:'https://www.c-span.org/live/cspan3/',      cat:'gov',  desc:'Hearings / history' },
+  { id:'wh',       name:'White House Live',    url:'https://www.whitehouse.gov/live/',         cat:'gov',  desc:'Official WH events & briefings' },
+  { id:'pentagon', name:'Pentagon Briefings',  url:'https://www.defense.gov/News/Transcripts/',cat:'gov',  desc:'DoD press briefings' },
+  { id:'state',    name:'State Dept Briefings',url:'https://www.state.gov/press-briefings/',   cat:'gov',  desc:'State Department press' },
+  { id:'un',       name:'UN Web TV',           url:'https://webtv.un.org/en/live',             cat:'gov',  desc:'Security Council / General Assembly' },
+  { id:'nato',     name:'NATO Channel',        url:'https://www.nato.int/cps/en/natohq/news.htm', cat:'gov', desc:'NATO press and events' },
+  { id:'euparl',   name:'EU Parliament TV',    url:'https://www.europarl.europa.eu/ep-live/en/plenary', cat:'gov', desc:'EP plenary sessions' },
+  { id:'eucouncil',name:'EU Council Live',     url:'https://multimedia.consilium.europa.eu',   cat:'gov',  desc:'Council of the EU' },
+  // GEO / INTEL
+  { id:'osint',    name:'OSINTdefender',       url:'https://twitter.com/OSINTdefender',        cat:'geo',  desc:'Real-time conflict OSINT' },
+  { id:'liveuamaps',name:'LiveUAMaps',         url:'https://liveuamap.com/',                   cat:'geo',  desc:'Ukraine conflict live map' },
+  { id:'acleddata',name:'ACLED Conflict Map',  url:'https://acleddata.com/dashboard/',         cat:'geo',  desc:'Armed conflict event tracker' },
+  { id:'idf',      name:'IDF Spokesperson',    url:'https://www.idf.il/en/',                   cat:'geo',  desc:'Israel Defense Forces official' },
+  { id:'ukrmod',   name:'Ukraine MoD',         url:'https://www.mil.gov.ua/en/',               cat:'geo',  desc:'Ukraine Ministry of Defence' },
+  { id:'intelemaps',name:'Intel Maps (ISW)',   url:'https://www.understandingwar.org/project/ukraine-conflict-updates', cat:'geo', desc:'ISW Ukraine situation reports' },
+  { id:'marinetraffic', name:'MarineTraffic',  url:'https://www.marinetraffic.com',            cat:'geo',  desc:'Global vessel tracking' },
+  { id:'fr24',     name:'Flightradar24',       url:'https://www.flightradar24.com',            cat:'geo',  desc:'Global live flight tracking' },
 ];
 
 let customCams = LSGet('custom_cams', []);
-let activeTiles = new Set();
-let currentCamCat = 'all';
+let currentLinkCat = 'all';
 
-function getAllCams() {
-  return [...BUILT_IN_CAMS, ...customCams];
+function filterLinks(cat) {
+  currentLinkCat = cat;
+  document.querySelectorAll('[data-lcat]').forEach(b => b.classList.toggle('active', b.dataset.lcat === cat));
+  renderStreamLinks();
 }
 
-function filterCams(cat) {
-  currentCamCat = cat;
-  document.querySelectorAll('.cam-filter-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.cat === cat);
-  });
-  renderCams();
+function getAllLinks() {
+  return [...STREAM_LINKS, ...customCams.map(c => ({...c, custom: true}))];
 }
 
-function renderCams() {
-  const grid = document.getElementById('cam-grid');
-  const cams = getAllCams().filter(c => currentCamCat === 'all' || c.cat === currentCamCat);
-
-  if (!cams.length) {
-    grid.innerHTML = '<div class="empty-state">No feeds in this category.</div>';
-    return;
-  }
-
-  grid.innerHTML = cams.map(cam => {
-    const isActive = activeTiles.has(cam.id);
-    return `
-    <div class="cam-tile ${isActive ? 'active-tile' : ''}" id="tile-${cam.id}">
-      <div class="cam-header" onclick="toggleCam('${cam.id}', '${encodeURIComponent(cam.embedUrl)}')">
-        <div class="cam-info">
-          <span class="cam-name">${cam.name}</span>
-          <span class="cam-source">${cam.source} &mdash; ${cam.desc}</span>
+function renderStreamLinks() {
+  const grid = document.getElementById('stream-link-grid');
+  if (!grid) return;
+  const links = getAllLinks().filter(l => currentLinkCat === 'all' || l.cat === currentLinkCat);
+  grid.innerHTML = links.map(l => `
+    <div class="stream-link-card" onclick="window.open('${l.url}','_blank')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div>
+          <div class="stream-link-name">${l.name}</div>
+          <div class="stream-link-desc">${l.desc}</div>
         </div>
-        <div style="display:flex;gap:6px;align-items:center">
+        <div style="display:flex;gap:4px;align-items:center;flex-shrink:0">
           <span class="cam-live-badge"><span class="live-dot"></span>LIVE</span>
-          ${cam.cat === 'custom' ? `<button class="btn btn-danger" style="padding:2px 7px;font-size:0.62rem" onclick="removeCustomCam('${cam.id}');event.stopPropagation()">x</button>` : ''}
+          ${l.custom ? `<button class="btn btn-danger" style="padding:1px 6px;font-size:0.6rem" onclick="removeCustomCam('${l.id}');event.stopPropagation()">x</button>` : ''}
         </div>
       </div>
-      <div class="cam-body" id="body-${cam.id}">
-        ${isActive
-          ? `<iframe src="${cam.embedUrl}" allowfullscreen allow="autoplay; encrypted-media"></iframe>`
-          : `<div class="click-to-load" onclick="toggleCam('${cam.id}', '${encodeURIComponent(cam.embedUrl)}')">
-              <div class="play-btn">&#9654;</div>
-              <span>Click to load stream</span>
-            </div>`
-        }
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function toggleCam(id, encodedUrl) {
-  const url = decodeURIComponent(encodedUrl);
-  const body = document.getElementById('body-' + id);
-  const tile = document.getElementById('tile-' + id);
-  if (!body) return;
-
-  if (activeTiles.has(id)) {
-    // Unload
-    activeTiles.delete(id);
-    tile.classList.remove('active-tile');
-    body.innerHTML = `<div class="click-to-load" onclick="toggleCam('${id}', '${encodedUrl}')">
-      <div class="play-btn">&#9654;</div><span>Click to load stream</span></div>`;
-  } else {
-    // Load
-    activeTiles.add(id);
-    tile.classList.add('active-tile');
-    body.innerHTML = `<iframe src="${url}" allowfullscreen allow="autoplay; encrypted-media"></iframe>`;
-  }
+      <div style="margin-top:8px;font-family:var(--font-mono);font-size:0.6rem;color:var(--text-dim)">${l.url.replace('https://','')}</div>
+    </div>`).join('');
 }
 
 function addCustomCam() {
@@ -2323,23 +2129,21 @@ function addCustomCam() {
   const cat = document.getElementById('custom-cam-cat').value;
   if (!url || !label) { alert('Please enter both a URL and a label.'); return; }
   const id = 'custom_' + Date.now();
-  customCams.push({ id, name: label, source: 'Custom', cat, type: 'live', embedUrl: url, desc: 'User-added feed' });
+  customCams.push({ id, name: label, url, cat, desc: 'Custom feed', custom: true });
   LSSet('custom_cams', customCams);
   document.getElementById('custom-cam-url').value = '';
   document.getElementById('custom-cam-label').value = '';
-  renderCams();
+  renderStreamLinks();
 }
 
 function removeCustomCam(id) {
   customCams = customCams.filter(c => c.id !== id);
   LSSet('custom_cams', customCams);
-  activeTiles.delete(id);
-  renderCams();
+  renderStreamLinks();
 }
 
-// Init on tab click
 document.querySelector('[data-tab="livecams"]').addEventListener('click', () => {
-  setTimeout(renderCams, 50);
+  setTimeout(renderStreamLinks, 50);
 });
 </script>
 
