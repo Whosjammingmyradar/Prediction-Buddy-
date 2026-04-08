@@ -537,6 +537,7 @@
   <div class="tab" data-tab="words">Political Language</div>
   <div class="tab" data-tab="predictions">My Predictions</div>
   <div class="tab" data-tab="econ">Economic Signals</div>
+  <div class="tab" data-tab="cone">Scenario Planner</div>
   <div class="tab" data-tab="settings">Settings</div>
 </div>
 
@@ -892,7 +893,370 @@
     </div>
   </div>
 
+
+  <!-- TAB: SCENARIO PLANNER / CONE OF PLAUSIBILITY -->
+  <div class="panel" id="panel-cone">
+
+    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+      <div style="flex:1;min-width:220px">
+        <input type="text" id="cone-title" placeholder="Scenario title e.g. Iran Strait of Hormuz Crisis 2025" style="width:100%">
+      </div>
+      <button class="btn btn-primary" onclick="addConeBox()">+ Add Event / Driver</button>
+      <button class="btn btn-ghost" onclick="clearCone()">Clear Canvas</button>
+      <button class="btn btn-ghost" onclick="exportCone()">Export JSON</button>
+    </div>
+
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+      <div id="prob-bars" style="display:flex;gap:6px;flex:1;min-width:0"></div>
+      <div id="prob-warn" style="font-family:var(--font-mono);font-size:0.7rem;color:var(--red);display:none">Probabilities must sum to 100%</div>
+    </div>
+
+    <div style="position:relative;overflow:hidden;border:1px solid var(--border);border-radius:4px;background:var(--bg2)">
+      <canvas id="cone-bg" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none"></canvas>
+      <div id="cone-canvas" style="position:relative;width:100%;height:580px;overflow:hidden;cursor:default">
+        <div style="position:absolute;bottom:8px;left:0;right:0;display:flex;justify-content:space-between;padding:0 24px;pointer-events:none">
+          <span style="font-family:var(--font-mono);font-size:0.62rem;color:var(--text-dim)">NOW</span>
+          <span style="font-family:var(--font-mono);font-size:0.62rem;color:var(--text-dim)">NEAR-TERM</span>
+          <span style="font-family:var(--font-mono);font-size:0.62rem;color:var(--text-dim)">MID-TERM</span>
+          <span style="font-family:var(--font-mono);font-size:0.62rem;color:var(--text-dim)">LONG-TERM</span>
+        </div>
+        <div style="position:absolute;top:0;bottom:32px;left:0;width:18px;display:flex;flex-direction:column;justify-content:space-between;padding:16px 0;pointer-events:none">
+          <span style="font-family:var(--font-mono);font-size:0.58rem;color:rgba(200,75,75,0.5);writing-mode:vertical-rl;transform:rotate(180deg);letter-spacing:0.1em">UNLIKELY</span>
+          <span style="font-family:var(--font-mono);font-size:0.58rem;color:rgba(200,168,75,0.5);writing-mode:vertical-rl;transform:rotate(180deg);letter-spacing:0.1em">PLAUSIBLE</span>
+          <span style="font-family:var(--font-mono);font-size:0.58rem;color:rgba(75,200,122,0.5);writing-mode:vertical-rl;transform:rotate(180deg);letter-spacing:0.1em">PROBABLE</span>
+          <span style="font-family:var(--font-mono);font-size:0.58rem;color:rgba(200,168,75,0.5);writing-mode:vertical-rl;transform:rotate(180deg);letter-spacing:0.1em">PLAUSIBLE</span>
+          <span style="font-family:var(--font-mono);font-size:0.58rem;color:rgba(200,75,75,0.5);writing-mode:vertical-rl;transform:rotate(180deg);letter-spacing:0.1em">UNLIKELY</span>
+        </div>
+        <div id="cone-boxes"></div>
+      </div>
+    </div>
+
+    <div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--text-dim);margin-top:8px">
+      Drag boxes to position on the cone. Double-click a box to edit. Vertical axis = plausibility. Horizontal axis = time horizon.
+    </div>
+
+    <div class="section-title">Scenario Definitions</div>
+    <div id="scenario-defs" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px"></div>
+
+    <div class="section-title">Linked Kalshi Markets</div>
+    <div id="cone-markets" class="card">
+      <div style="font-size:0.8rem;color:var(--text-dim)">Add events to the cone and link them to Kalshi markets for each scenario.</div>
+    </div>
+
+  </div>
+
 </div><!-- /#content -->
+
+<style>
+#cone-canvas { user-select:none; }
+.cone-box {
+  position:absolute; min-width:130px; max-width:190px;
+  background:var(--bg3); border:1.5px solid var(--border);
+  border-radius:4px; padding:7px 10px; cursor:grab;
+  box-shadow:0 2px 10px rgba(0,0,0,0.4);
+  transition:box-shadow 0.15s,border-color 0.15s; z-index:10; font-size:0.78rem;
+}
+.cone-box:active { cursor:grabbing; box-shadow:0 4px 20px rgba(0,0,0,0.6); }
+.cone-box.scenario-base   { border-color:rgba(75,200,122,0.6); background:rgba(75,200,122,0.07); }
+.cone-box.scenario-high   { border-color:rgba(200,75,75,0.6); background:rgba(200,75,75,0.07); }
+.cone-box.scenario-low    { border-color:rgba(75,127,200,0.6); background:rgba(75,127,200,0.07); }
+.cone-box.scenario-driver { border-color:rgba(200,168,75,0.6); background:rgba(200,168,75,0.07); }
+.cone-box .box-label { font-family:var(--font-mono); font-size:0.58rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:4px; }
+.cone-box.scenario-base   .box-label { color:var(--green); }
+.cone-box.scenario-high   .box-label { color:var(--red); }
+.cone-box.scenario-low    .box-label { color:var(--accent2); }
+.cone-box.scenario-driver .box-label { color:var(--yellow); }
+.cone-box .box-title { font-weight:600; color:var(--text-hi); line-height:1.3; margin-bottom:3px; }
+.cone-box .box-prob  { font-family:var(--font-mono); font-size:0.65rem; color:var(--text-dim); }
+.cone-box .box-close {
+  position:absolute; top:4px; right:6px; font-size:0.65rem; color:var(--text-dim);
+  cursor:pointer; background:none; border:none; padding:0; line-height:1;
+}
+.cone-box .box-close:hover { color:var(--red); }
+.scenario-card { background:var(--bg2); border:1px solid var(--border); border-radius:4px; padding:14px; }
+.scenario-card.s-base { border-top:3px solid var(--green); }
+.scenario-card.s-high { border-top:3px solid var(--red); }
+.scenario-card.s-low  { border-top:3px solid var(--accent2); }
+.prob-strip { display:flex; align-items:center; gap:8px; padding:6px 10px;
+  background:var(--bg2); border:1px solid var(--border); border-radius:3px; flex:1; min-width:0; }
+.prob-strip .ps-label { font-family:var(--font-mono); font-size:0.65rem; color:var(--text-dim); white-space:nowrap; }
+.prob-strip .ps-val   { font-family:var(--font-mono); font-size:0.85rem; font-weight:700; }
+.prob-strip input[type=range] { flex:1; min-width:0; }
+.ps-base { color:var(--green); } .ps-high { color:var(--red); } .ps-low { color:var(--accent2); }
+</style>
+
+<script>
+// CONE OF PLAUSIBILITY
+let coneState = LSGet('cone', {
+  title:'', scenarios:{
+    base:{ label:'Base Case', prob:55, desc:'', market:'' },
+    high:{ label:'Tail Risk', prob:20, desc:'', market:'' },
+    low: { label:'Benign Case', prob:25, desc:'', market:'' }
+  }, boxes:[]
+});
+let nextBoxId = (coneState.boxes.reduce((m,b)=>Math.max(m,b.id||0),0))+1;
+
+function drawCone(){
+  const canvas=document.getElementById('cone-bg');
+  const container=document.getElementById('cone-canvas');
+  const W=container.offsetWidth, H=container.offsetHeight;
+  canvas.width=W; canvas.height=H;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  const cx=48, cy=H/2, endW=H*0.88;
+  const zones=[
+    {s:1.00,c:'rgba(200,75,75,0.07)'},
+    {s:0.65,c:'rgba(200,168,75,0.08)'},
+    {s:0.35,c:'rgba(75,200,122,0.09)'}
+  ];
+  zones.forEach(z=>{
+    const hw=(endW/2)*z.s;
+    ctx.beginPath(); ctx.moveTo(cx,cy);
+    ctx.lineTo(W-20,cy-hw); ctx.lineTo(W-20,cy+hw); ctx.closePath();
+    ctx.fillStyle=z.c; ctx.fill();
+  });
+  const fullHW=endW/2;
+  [[fullHW,'rgba(200,75,75,0.25)',[4,4]],[fullHW*0.65,'rgba(200,168,75,0.2)',[3,6]],[fullHW*0.35,'rgba(75,200,122,0.2)',[2,8]]].forEach(([hw,col,dash])=>{
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(W-20,cy-hw);
+    ctx.moveTo(cx,cy); ctx.lineTo(W-20,cy+hw);
+    ctx.strokeStyle=col; ctx.lineWidth=0.8; ctx.setLineDash(dash); ctx.stroke(); ctx.setLineDash([]);
+  });
+  [0.33,0.66].forEach(x=>{
+    ctx.beginPath(); ctx.moveTo(cx+(W-cx)*x,0); ctx.lineTo(cx+(W-cx)*x,H-28);
+    ctx.strokeStyle='rgba(120,130,160,0.12)'; ctx.lineWidth=1; ctx.setLineDash([2,6]); ctx.stroke(); ctx.setLineDash([]);
+  });
+  ctx.beginPath(); ctx.arc(cx,cy,6,0,Math.PI*2);
+  ctx.fillStyle='rgba(200,168,75,0.8)'; ctx.fill();
+}
+
+window.addEventListener('resize', drawCone);
+
+document.querySelector('[data-tab="cone"]').addEventListener('click',()=>{
+  setTimeout(()=>{ drawCone(); renderConeBoxes(); renderScenarioDefs(); renderProbBars(); },60);
+});
+
+function renderProbBars(){
+  const s=coneState.scenarios;
+  const total=s.base.prob+s.high.prob+s.low.prob;
+  document.getElementById('prob-warn').style.display=total!==100?'block':'none';
+  document.getElementById('prob-bars').innerHTML=`
+    <div class="prob-strip">
+      <span class="ps-label">BASE</span>
+      <input type="range" min="0" max="100" step="1" value="${s.base.prob}" oninput="updateProb('base',+this.value)">
+      <span class="ps-val ps-base" id="pv-base">${s.base.prob}%</span>
+    </div>
+    <div class="prob-strip">
+      <span class="ps-label">TAIL RISK</span>
+      <input type="range" min="0" max="100" step="1" value="${s.high.prob}" oninput="updateProb('high',+this.value)">
+      <span class="ps-val ps-high" id="pv-high">${s.high.prob}%</span>
+    </div>
+    <div class="prob-strip">
+      <span class="ps-label">BENIGN</span>
+      <input type="range" min="0" max="100" step="1" value="${s.low.prob}" oninput="updateProb('low',+this.value)">
+      <span class="ps-val ps-low" id="pv-low">${s.low.prob}%</span>
+    </div>
+    <div class="prob-strip" style="flex:0;padding:6px 14px">
+      <span style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-dim)">SUM</span>&nbsp;
+      <span id="prob-sum" style="font-family:var(--font-mono);font-size:0.85rem;font-weight:700;color:${total===100?'var(--green)':'var(--red)'}">${total}%</span>
+    </div>`;
+}
+
+function updateProb(key,val){
+  coneState.scenarios[key].prob=val;
+  document.getElementById('pv-'+key).textContent=val+'%';
+  const s=coneState.scenarios;
+  const total=s.base.prob+s.high.prob+s.low.prob;
+  document.getElementById('prob-warn').style.display=total!==100?'block':'none';
+  const sumEl=document.getElementById('prob-sum');
+  if(sumEl){ sumEl.textContent=total+'%'; sumEl.style.color=total===100?'var(--green)':'var(--red)'; }
+  saveCone(); renderScenarioDefs();
+}
+
+function renderScenarioDefs(){
+  document.getElementById('scenario-defs').innerHTML=['base','high','low'].map(k=>{
+    const sc=coneState.scenarios[k];
+    const [cc,cl]=k==='base'?['s-base','var(--green)']:k==='high'?['s-high','var(--red)']:['s-low','var(--accent2)'];
+    const tl=k==='base'?'Base Case':k==='high'?'Tail Risk':'Benign Case';
+    return `<div class="scenario-card ${cc}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-family:var(--font-mono);font-size:0.65rem;font-weight:700;letter-spacing:0.1em;color:${cl}">${tl.toUpperCase()}</div>
+        <div style="font-family:var(--font-mono);font-size:0.9rem;font-weight:700;color:${cl}">${sc.prob}%</div>
+      </div>
+      <div class="form-row" style="margin-bottom:8px">
+        <label>Scenario Name</label>
+        <input type="text" value="${sc.label}" placeholder="Name this scenario" oninput="coneState.scenarios['${k}'].label=this.value;saveCone();renderConeBoxes()">
+      </div>
+      <div class="form-row" style="margin-bottom:8px">
+        <label>Key Assumptions</label>
+        <textarea style="height:72px;resize:vertical" placeholder="What has to be true for this scenario?" oninput="coneState.scenarios['${k}'].desc=this.value;saveCone()">${sc.desc||''}</textarea>
+      </div>
+      <div class="form-row">
+        <label>Linked Kalshi Market ID</label>
+        <input type="text" value="${sc.market||''}" placeholder="e.g. IRAN-HORMUZ-2025" oninput="coneState.scenarios['${k}'].market=this.value;saveCone();renderLinkedMarkets()">
+      </div>
+    </div>`;
+  }).join('');
+  renderLinkedMarkets();
+}
+
+function renderLinkedMarkets(){
+  const s=coneState.scenarios;
+  const linked=['base','high','low'].filter(k=>s[k].market);
+  const el=document.getElementById('cone-markets');
+  if(!linked.length){ el.innerHTML='<div style="font-size:0.8rem;color:var(--text-dim)">Add Kalshi market IDs to the scenario definitions above to link them here.</div>'; return; }
+  el.innerHTML=linked.map(k=>{
+    const sc=s[k];
+    const cv=k==='base'?'var(--green)':k==='high'?'var(--red)':'var(--accent2)';
+    const mkt=allMarkets.find(m=>m.id===sc.market.trim().toUpperCase());
+    return `<div class="metric-row">
+      <div>
+        <div style="font-family:var(--font-mono);font-size:0.65rem;font-weight:700;color:${cv};margin-bottom:2px">${sc.label}</div>
+        <div style="font-size:0.83rem;color:var(--text-hi)">${mkt?mkt.q:sc.market}</div>
+      </div>
+      ${mkt?`<div style="font-family:var(--font-mono);font-size:0.8rem;color:var(--green)">${mkt.yes}c YES</div>`:'<div style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-dim)">not in feed</div>'}
+    </div>`;
+  }).join('');
+}
+
+function addConeBox(){
+  document.getElementById('cb-title').value='';
+  document.getElementById('cb-type').value='base';
+  document.getElementById('cb-notes').value='';
+  delete document.getElementById('cone-box-modal').dataset.editId;
+  document.getElementById('cone-box-modal').classList.add('open');
+}
+
+window.saveConeBox=function(){
+  const modal=document.getElementById('cone-box-modal');
+  const editId=modal.dataset.editId;
+  const title=document.getElementById('cb-title').value.trim();
+  if(!title){ alert('Please enter a title.'); return; }
+  const type=document.getElementById('cb-type').value;
+  const notes=document.getElementById('cb-notes').value;
+  if(editId){
+    const b=coneState.boxes.find(b=>b.id===+editId);
+    if(b){ b.title=title; b.type=type; b.notes=notes; }
+    delete modal.dataset.editId;
+  } else {
+    const canvas=document.getElementById('cone-canvas');
+    const W=canvas.offsetWidth||800, H=canvas.offsetHeight||580, cx=60;
+    const baseX=cx+(W-cx)*0.4;
+    const spreads={base:0,high:-0.28,low:0.28,driver:-0.5};
+    coneState.boxes.push({
+      id:nextBoxId++, title, type, notes,
+      x:Math.round(baseX+(Math.random()-0.5)*120),
+      y:Math.round((H/2)+H*(spreads[type]||0)-30+(Math.random()-0.5)*40)
+    });
+  }
+  saveCone();
+  closeModal('cone-box-modal');
+  renderConeBoxes();
+};
+
+function renderConeBoxes(){
+  const el=document.getElementById('cone-boxes');
+  el.innerHTML='';
+  coneState.boxes.forEach(b=>{
+    const div=document.createElement('div');
+    div.className=`cone-box scenario-${b.type}`;
+    div.style.left=b.x+'px'; div.style.top=b.y+'px';
+    div.dataset.id=b.id;
+    const tl=b.type==='base'?'Base':b.type==='high'?'Tail Risk':b.type==='low'?'Benign':'Driver';
+    const prob=b.type!=='driver'?`<div class="box-prob">${coneState.scenarios[b.type]?.prob||0}% probability</div>`:'';
+    div.innerHTML=`<button class="box-close" onclick="removeConeBox(${b.id})">x</button>
+      <div class="box-label">${tl}</div>
+      <div class="box-title">${b.title}</div>${prob}
+      ${b.notes?`<div style="font-size:0.68rem;color:var(--text-dim);margin-top:4px;line-height:1.4">${b.notes}</div>`:''}`;
+    makeDraggable(div,b.id);
+    div.addEventListener('dblclick',()=>editConeBox(b.id));
+    el.appendChild(div);
+  });
+}
+
+function removeConeBox(id){ coneState.boxes=coneState.boxes.filter(b=>b.id!==id); saveCone(); renderConeBoxes(); }
+
+function editConeBox(id){
+  const b=coneState.boxes.find(b=>b.id===id); if(!b) return;
+  document.getElementById('cb-title').value=b.title;
+  document.getElementById('cb-type').value=b.type;
+  document.getElementById('cb-notes').value=b.notes||'';
+  document.getElementById('cone-box-modal').dataset.editId=id;
+  document.getElementById('cone-box-modal').classList.add('open');
+}
+
+function makeDraggable(el,id){
+  el.addEventListener('mousedown',e=>{
+    if(e.target.classList.contains('box-close')) return;
+    e.preventDefault();
+    const b=coneState.boxes.find(b=>b.id===id);
+    let ox=b.x,oy=b.y,sx=e.clientX,sy=e.clientY;
+    el.style.zIndex=50;
+    const onMove=e=>{
+      const canvas=document.getElementById('cone-canvas');
+      const nx=Math.max(0,Math.min(canvas.offsetWidth-el.offsetWidth,ox+e.clientX-sx));
+      const ny=Math.max(0,Math.min(canvas.offsetHeight-el.offsetHeight-28,oy+e.clientY-sy));
+      el.style.left=nx+'px'; el.style.top=ny+'px'; b.x=Math.round(nx); b.y=Math.round(ny);
+    };
+    const onUp=()=>{ el.style.zIndex=10; saveCone(); document.removeEventListener('mousemove',onMove); document.removeEventListener('mouseup',onUp); };
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('mouseup',onUp);
+  });
+  el.addEventListener('touchstart',e=>{
+    if(e.target.classList.contains('box-close')) return;
+    const t=e.touches[0],b=coneState.boxes.find(b=>b.id===id);
+    let ox=b.x,oy=b.y,sx=t.clientX,sy=t.clientY;
+    const onMove=e=>{ const tc=e.touches[0],canvas=document.getElementById('cone-canvas');
+      const nx=Math.max(0,Math.min(canvas.offsetWidth-el.offsetWidth,ox+tc.clientX-sx));
+      const ny=Math.max(0,Math.min(canvas.offsetHeight-el.offsetHeight-28,oy+tc.clientY-sy));
+      el.style.left=nx+'px'; el.style.top=ny+'px'; b.x=Math.round(nx); b.y=Math.round(ny); };
+    const onEnd=()=>{ saveCone(); el.removeEventListener('touchmove',onMove); el.removeEventListener('touchend',onEnd); };
+    el.addEventListener('touchmove',onMove,{passive:true}); el.addEventListener('touchend',onEnd);
+  },{passive:true});
+}
+
+function clearCone(){ if(!confirm('Clear all boxes from the canvas?')) return; coneState.boxes=[]; saveCone(); renderConeBoxes(); }
+
+function exportCone(){
+  const blob=new Blob([JSON.stringify(coneState,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='cone_'+(coneState.title||'scenario').replace(/\s+/g,'_').slice(0,30)+'_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+}
+
+function saveCone(){ LSSet('cone',coneState); }
+
+document.getElementById('cone-title').addEventListener('input',function(){ coneState.title=this.value; saveCone(); });
+document.getElementById('cone-title').value=coneState.title||'';
+</script>
+
+<!-- CONE BOX MODAL -->
+<div class="modal-overlay" id="cone-box-modal">
+  <div class="modal" style="width:420px">
+    <h3>Add Event / Driver to Cone</h3>
+    <div class="form-row">
+      <label>Event or Driver Title</label>
+      <input type="text" id="cb-title" placeholder="e.g. IRGC mines Strait approach lanes">
+    </div>
+    <div class="form-row">
+      <label>Scenario / Type</label>
+      <select id="cb-type">
+        <option value="base">Base Case</option>
+        <option value="high">Tail Risk (high-impact)</option>
+        <option value="low">Benign Case</option>
+        <option value="driver">Key Driver / Assumption</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Notes (optional)</label>
+      <textarea id="cb-notes" style="height:64px" placeholder="Why does this event matter? What does it trigger?"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('cone-box-modal');delete document.getElementById('cone-box-modal').dataset.editId">Cancel</button>
+      <button class="btn btn-primary" onclick="saveConeBox()">Place on Cone</button>
+    </div>
+  </div>
+</div>
+
 
 <!--  PREDICTION MODAL  -->
 <div class="modal-overlay" id="pred-modal">
