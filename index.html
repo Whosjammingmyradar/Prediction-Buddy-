@@ -1326,7 +1326,7 @@ function buildMatrix() {
       '</div>';
     };
 
-    const kalshiMkt = r.kalshi ? allMarkets.find(m => m.id === r.kalshi) : null;
+    const kalshiMkt = r.kalshi && typeof allMarkets !== 'undefined' ? allMarkets.find(m => m.id === r.kalshi) : null;
 
     return '<div style="background:' + c.bg + ';border:1px solid ' + c.border + ';border-left:3px solid ' + c.bar + ';border-radius:4px;cursor:pointer;transition:all 0.2s" onclick="toggleRegion(' + idx + ')">' +
       // Header row
@@ -1372,7 +1372,8 @@ function toggleRegion(idx) {
   buildMatrix();
 }
 
-buildMatrix();
+// buildMatrix called after allMarkets is defined below
+
 
 //  NEWS FEED 
 const SAMPLE_NEWS = [
@@ -1555,6 +1556,7 @@ const KALSHI_MARKETS = [
 ];
 
 let allMarkets = [...KALSHI_MARKETS];
+buildMatrix();
 
 function filterMarkets() {
   const q = document.getElementById('kalshi-search').value.toLowerCase();
