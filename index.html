@@ -540,7 +540,6 @@
   <span><span class="status-dot"></span>LIVE</span>
   <span id="sb-date">—</span>
   <span id='feed-status'>FEEDS: Connecting to glassball-api.vercel.app…</span>
-  <span id="sb-pred-count">—</span>
 </div>
 
 <!--  TABS  -->
@@ -656,6 +655,15 @@
       <div class="card" style="padding:0;overflow:hidden">
         <div class="card-header" style="padding:10px 14px;border-radius:0">ADS-B Exchange — Middle East</div>
         <iframe src="https://globe.adsbexchange.com/?lat=26&lon=55&zoom=6"
+          style="width:100%;height:320px;border:none;display:block" loading="lazy"></iframe>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden;grid-column:span 1">
+        <div class="card-header" style="padding:10px 14px;border-radius:0;display:flex;justify-content:space-between;align-items:center">
+          ADS-B Exchange — Military Only
+          <span style="font-family:var(--font-mono);font-size:0.6rem;padding:1px 6px;border-radius:2px;background:rgba(200,75,75,0.15);color:var(--red);border:1px solid rgba(200,75,75,0.3)">MIL FILTER ACTIVE</span>
+        </div>
+        <iframe src="https://globe.adsbexchange.com/?lat=30&lon=40&zoom=4&showmil=1&hideciv=1&mil=1"
           style="width:100%;height:320px;border:none;display:block" loading="lazy"></iframe>
       </div>
 
@@ -1679,7 +1687,6 @@ l>
   <span><span class="status-dot"></span>LIVE</span>
   <span id="sb-date">—</span>
   <span id='feed-status'>FEEDS: Connecting to glassball-api.vercel.app…</span>
-  <span id="sb-pred-count">—</span>
 </div>
 
 <!--  TABS  -->
@@ -1795,6 +1802,15 @@ l>
       <div class="card" style="padding:0;overflow:hidden">
         <div class="card-header" style="padding:10px 14px;border-radius:0">ADS-B Exchange — Middle East</div>
         <iframe src="https://globe.adsbexchange.com/?lat=26&lon=55&zoom=6"
+          style="width:100%;height:320px;border:none;display:block" loading="lazy"></iframe>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden;grid-column:span 1">
+        <div class="card-header" style="padding:10px 14px;border-radius:0;display:flex;justify-content:space-between;align-items:center">
+          ADS-B Exchange — Military Only
+          <span style="font-family:var(--font-mono);font-size:0.6rem;padding:1px 6px;border-radius:2px;background:rgba(200,75,75,0.15);color:var(--red);border:1px solid rgba(200,75,75,0.3)">MIL FILTER ACTIVE</span>
+        </div>
+        <iframe src="https://globe.adsbexchange.com/?lat=30&lon=40&zoom=4&showmil=1&hideciv=1&mil=1"
           style="width:100%;height:320px;border:none;display:block" loading="lazy"></iframe>
       </div>
 
@@ -3041,7 +3057,7 @@ function updateStats() {
   document.getElementById('stat-losses').textContent = losses;
   const resolved = wins + losses;
   document.getElementById('stat-acc').textContent = resolved ? Math.round((wins/resolved)*100) + '%' : '–';
-  document.getElementById('sb-pred-count').textContent = `${predictions.filter(p=>p.outcome==='open').length} OPEN PREDICTIONS`;
+  
 }
 
 function renderBetLog() {
