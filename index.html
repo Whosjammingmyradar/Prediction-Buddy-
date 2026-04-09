@@ -539,7 +539,7 @@
 <div id="status-bar">
   <span><span class="status-dot"></span>LIVE</span>
   <span id="sb-date">—</span>
-  <span>FEEDS: GDELT · KALSHI · GNews</span>
+  <span id='feed-status'>FEEDS: Connecting to glassball-api.vercel.app…</span>
   <span id="sb-pred-count">—</span>
 </div>
 
@@ -1678,7 +1678,7 @@ l>
 <div id="status-bar">
   <span><span class="status-dot"></span>LIVE</span>
   <span id="sb-date">—</span>
-  <span>FEEDS: GDELT · KALSHI · GNews</span>
+  <span id='feed-status'>FEEDS: Connecting to glassball-api.vercel.app…</span>
   <span id="sb-pred-count">—</span>
 </div>
 
@@ -2362,9 +2362,11 @@ function loadNews() {
   
   const apiKey = LSGet('settings', {}).gnewsKey || '';
   
-  setTimeout(() => {
-    // Try live fetch, fall back to sample
-    const filtered = currentFilter === 'all' ? SAMPLE_NEWS : SAMPLE_NEWS.filter(n => n.region === currentFilter);
+  setTimeout(async () => {
+    // Try live news from GitHub Action data file
+    const liveArticles = await fetchLiveNews();
+    const newsSource = liveArticles && liveArticles.length > 0 ? liveArticles : SAMPLE_NEWS;
+    const filtered = currentFilter === 'all' ? newsSource : newsSource.filter(n => n.region === currentFilter);
     feed.innerHTML = filtered.map((n, i) => `
       <div class="news-item" data-idx="${i}" oncontextmenu="showCtx(event,${i})">
         <div class="headline">
@@ -2567,9 +2569,26 @@ function renderMarkets(markets) {
   }).join('');
 }
 
-function loadKalshi() {
-  document.getElementById('kalshi-feed').innerHTML = '<div class="empty-state"><div class="icon">⏳</div>Fetching markets…</div>';
-  setTimeout(() => renderMarkets(allMarkets), 600);
+async function loadKalshi() {
+  document.getElementById('kalshi-feed').innerHTML = '<div class="empty-state">Fetching live markets…</div>';
+  const liveMarkets = await fetchLiveKalshi();
+  if (liveMarkets && liveMarkets.length > 0) {
+    // Merge live data with our curated list — live data takes priority for prices
+    liveMarkets.forEach(lm => {
+      const existing = allMarkets.find(m => m.id === lm.id);
+      if (existing) {
+        existing.yes = lm.yes;
+        existing.no  = lm.no;
+        existing.vol = lm.vol;
+      } else if (lm.q) {
+        allMarkets.push(lm);
+      }
+    });
+    document.getElementById('kalshi-count').textContent = allMarkets.length + ' markets (live)';
+  } else {
+    document.getElementById('kalshi-count').textContent = allMarkets.length + ' markets (cached)';
+  }
+  renderMarkets(allMarkets);
 }
 loadKalshi();
 
@@ -3169,8 +3188,25 @@ function loadCapitolWords() {
 
 //  AUTO-REFRESH 
 const settings = LSGet('settings', {});
-const interval = parseInt(settings.refreshInterval || '600000');
-if (interval > 0) setInterval(() => { loadNews(); loadKalshi(); }, interval);
+const interval = parseInt(settings.refreshInterval || '300000');
+if (interval > 0) setInterval(() => { loadNews(); loadKalshi(); loadEconCharts(); }, interval);
+
+// Update feed status once data loads
+setTimeout(async () => {
+  try {
+    const r = await fetch('https://glassball-api.vercel.app/api/prices', { cache: 'no-cache' });
+    const el = document.getElementById('feed-status');
+    if (r.ok && el) {
+      const j = await r.json();
+      const ts = j.ts ? new Date(j.ts).toLocaleTimeString() : 'now';
+      el.textContent = 'FEEDS: LIVE · glassball-api.vercel.app · updated ' + ts;
+      el.style.color = 'var(--green)';
+    }
+  } catch(e) {
+    const el = document.getElementById('feed-status');
+    if (el) { el.textContent = 'FEEDS: API unreachable — using cached data'; el.style.color = 'var(--yellow)'; }
+  }
+}, 3000);
 
 console.log('%cGlassball loaded.', 'color: #c8a84b; font-family: monospace; font-size: 14px;');
 </script>
@@ -3576,6 +3612,30 @@ const PRICE_INSTRUMENTS = [
 
 let priceData = {};
 
+function renderPriceCardsFromLive(data) {
+  const el = document.getElementById('price-cards');
+  if (!el) return;
+  const instruments = ['WTI','Brent','NatGas','Gold','Silver','SPX','NDQ','VIX','DXY','T10Y','EURUSD','BTC'];
+  el.innerHTML = instruments.map(sym => {
+    const cfg = BASE_PRICES[sym];
+    const d = data[sym];
+    if (!d || !d.price) return renderOnePriceCard(sym, cfg, null, null);
+    return renderOnePriceCard(sym, cfg, d.price, d.change);
+  }).join('');
+}
+
+function renderOnePriceCard(sym, cfg, price, change) {
+  const hasData = price !== null && price !== undefined;
+  const chgColor = !hasData ? 'var(--text-dim)' : change >= 0 ? 'var(--green)' : 'var(--red)';
+  const fmtVal = hasData ? fmtPrice(sym, price) : '—';
+  const chgStr = hasData && change !== null ? (change >= 0 ? '▲ +' : '▼ ') + Math.abs(change).toFixed(2) + '%' : '—';
+  return '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:10px 12px">' +
+    '<div style="font-family:var(--font-mono);font-size:0.6rem;color:var(--text-dim);margin-bottom:3px;text-transform:uppercase;letter-spacing:0.08em">' + cfg.label + '</div>' +
+    '<div style="font-family:var(--font-mono);font-size:1.05rem;font-weight:700;color:' + cfg.color + '">' + fmtVal + '</div>' +
+    '<div style="font-family:var(--font-mono);font-size:0.7rem;color:' + chgColor + ';margin-top:2px">' + chgStr + '</div>' +
+  '</div>';
+}
+
 function renderPriceCards() {
   const el = document.getElementById('price-cards');
   if (!el) return;
@@ -3593,7 +3653,7 @@ function renderPriceCards() {
   }).join('');
 }
 
-// ── MARKET DATA — seeded realistic prices + live FX via Frankfurter ──
+// ── MARKET DATA — reads /data/prices.json (GitHub Action) or falls back to seeded ──
 // GitHub Pages can't proxy APIs. Charts use realistic seeded data.
 // FX rates fetch live from frankfurter.app (open CORS, ECB data).
 
@@ -3707,6 +3767,46 @@ function updateBadge(id, text) {
   if (el) el.textContent = text;
 }
 
+// ── LIVE DATA — Vercel proxy at glassball-api.vercel.app ──
+const API_BASE = 'https://glassball-api.vercel.app';
+
+async function fetchLiveData() {
+  try {
+    const r = await fetch(API_BASE + '/api/prices', { cache: 'no-cache' });
+    if (!r.ok) return null;
+    const json = await r.json();
+    if (!json.ok || !json.data) return null;
+    return json;
+  } catch(e) { console.warn('Price fetch failed:', e.message); return null; }
+}
+
+async function fetchLiveNews() {
+  try {
+    const r = await fetch(API_BASE + '/api/news', { cache: 'no-cache' });
+    if (!r.ok) return null;
+    const json = await r.json();
+    return json.ok ? json.articles : null;
+  } catch(e) { console.warn('News fetch failed:', e.message); return null; }
+}
+
+async function fetchLiveKalshi() {
+  try {
+    const r = await fetch(API_BASE + '/api/kalshi', { cache: 'no-cache' });
+    if (!r.ok) return null;
+    const json = await r.json();
+    return json.ok ? json.markets : null;
+  } catch(e) { console.warn('Kalshi fetch failed:', e.message); return null; }
+}
+
+async function fetchLiveSanctions() {
+  try {
+    const r = await fetch(API_BASE + '/api/sanctions', { cache: 'no-cache' });
+    if (!r.ok) return null;
+    const json = await r.json();
+    return json.ok ? json.entries : null;
+  } catch(e) { return null; }
+}
+
 async function tryFetchLiveFX() {
   // Frankfurter.app — ECB FX rates, truly open CORS
   try {
@@ -3718,11 +3818,27 @@ async function tryFetchLiveFX() {
 }
 
 async function loadEconCharts() {
-  // Generate all series from seeded data
-  allSeries = getAllSeriesData();
+  // Try live data from GitHub Action first
+  const liveJson = await fetchLiveData();
 
-  // Render price cards immediately with seeded data
-  renderPriceCards();
+  if (liveJson && liveJson.data) {
+    // Use live data — build allSeries from API response
+    const d = liveJson.data;
+    for (const [key, val] of Object.entries(d)) {
+      if (val && val.series) {
+        allSeries[key] = val.series.map(s => ({ date: s.d, close: s.c }));
+      }
+    }
+    // Update the status note
+    const liveTs = new Date(liveJson.ts).toLocaleTimeString();
+    const note = document.querySelector('[data-live-note]');
+    if (note) note.textContent = 'LIVE — last updated ' + liveTs;
+    renderPriceCardsFromLive(liveJson.data);
+  } else {
+    // Fall back to seeded data
+    allSeries = getAllSeriesData();
+    renderPriceCards();
+  }
 
   // Try to get live FX to update EUR/USD card
   const fx = await tryFetchLiveFX();
@@ -3765,6 +3881,30 @@ async function loadEconCharts() {
     close: ((d.close / baseIta) - (spx[spx.length - minLen2 + i].close / baseSpx)) * 100
   }));
   makeChart('chart-defense', spreadData, '#4bc87a', 'rgba(75,200,122,0.06)', v => v.toFixed(2) + 'pp');
+}
+
+function renderPriceCardsFromLive(data) {
+  const el = document.getElementById('price-cards');
+  if (!el) return;
+  const instruments = ['WTI','Brent','NatGas','Gold','Silver','SPX','NDQ','VIX','DXY','T10Y','EURUSD','BTC'];
+  el.innerHTML = instruments.map(sym => {
+    const cfg = BASE_PRICES[sym];
+    const d = data[sym];
+    if (!d || !d.price) return renderOnePriceCard(sym, cfg, null, null);
+    return renderOnePriceCard(sym, cfg, d.price, d.change);
+  }).join('');
+}
+
+function renderOnePriceCard(sym, cfg, price, change) {
+  const hasData = price !== null && price !== undefined;
+  const chgColor = !hasData ? 'var(--text-dim)' : change >= 0 ? 'var(--green)' : 'var(--red)';
+  const fmtVal = hasData ? fmtPrice(sym, price) : '—';
+  const chgStr = hasData && change !== null ? (change >= 0 ? '▲ +' : '▼ ') + Math.abs(change).toFixed(2) + '%' : '—';
+  return '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:10px 12px">' +
+    '<div style="font-family:var(--font-mono);font-size:0.6rem;color:var(--text-dim);margin-bottom:3px;text-transform:uppercase;letter-spacing:0.08em">' + cfg.label + '</div>' +
+    '<div style="font-family:var(--font-mono);font-size:1.05rem;font-weight:700;color:' + cfg.color + '">' + fmtVal + '</div>' +
+    '<div style="font-family:var(--font-mono);font-size:0.7rem;color:' + chgColor + ';margin-top:2px">' + chgStr + '</div>' +
+  '</div>';
 }
 
 function renderPriceCards() {
